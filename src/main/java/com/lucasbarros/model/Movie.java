@@ -70,4 +70,26 @@ public class Movie {
         }
         return null;
     }
+
+    @Override
+    public String toString() {
+        return title + " (" + releaseYear + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Movie)) {
+            return false;
+        }
+        Movie outro = (Movie) obj;
+        return id.equals(outro.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
 }

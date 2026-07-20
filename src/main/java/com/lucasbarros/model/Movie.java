@@ -59,4 +59,15 @@ public class Movie {
     public int getEra() {
         return (releaseYear / 10) * 10;
     }
+
+    // função simples para procurar um ator dentro do elenco no filme
+    // retorna null se o ator n estiver no elenco
+    public CastMember findCastMember(String actorName) {
+        for (CastMember member : cast) {
+            if (member.getActorName().equalsIgnoreCase(actorName)) {
+                return member;
+            }
+        }
+        return null;
+    }
 }

@@ -150,7 +150,7 @@ public class MovieGraph {
         return edges;
     }
 
-    public List<Movie> getMovies() {
+    public List<Movie> getAllMovies() {
         return movies;
     }
 

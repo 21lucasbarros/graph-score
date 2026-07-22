@@ -1,8 +1,7 @@
 package com.lucasbarros.visual;
 
-import com.lucasbarros.graph.ConnectionType;
-import com.lucasbarros.graph.Edge;
 import com.lucasbarros.graph.MovieGraph;
+import com.lucasbarros.model.CastMember;
 import com.lucasbarros.model.Movie;
 
 import javax.swing.*;
@@ -12,37 +11,104 @@ import java.util.List;
 
 public class GraphPanel extends JPanel {
 
-    private static final int LARGURA = 900;
-    private static final int ALTURA = 700;
-    private static final int RAIO_DO_CIRCULO = 260;
-    private static final int RAIO_DO_NO = 10;
+    private static final int LARGURA = 1000;
+    private static final int ALTURA = 800;
 
-    private MovieGraph graph;
+    private static final int RAIO_DOS_FILMES = 330;
+    private static final int RAIO_DOS_DIRETORES = 90;
+    private static final int RAIO_DOS_ATORES = 160;
+    private static final int RAIO_DOS_GENEROS = 230;
+
+    private static final int TAMANHO_NO_FILME = 10;
+    private static final int TAMANHO_NO_VIRTUAL = 8;
+
     private List<Movie> movies;
+
+    private Map<String, List<Movie>> diretoresComMaisDeUmFilme = new HashMap<>();
+    private Map<String, List<Movie>> atoresComMaisDeUmFilme = new HashMap<>();
+    private Map<String, List<Movie>> generosComMaisDeUmFilme = new HashMap<>();
+
     private Map<String, Point> posicoes = new HashMap<>();
 
     public GraphPanel(MovieGraph graph) {
-        this.graph = graph;
         this.movies = graph.getAllMovies();
 
+        montarNosVirtuais();
         calcularPosicoes();
 
         setPreferredSize(new Dimension(ALTURA, LARGURA));
         setBackground(Color.WHITE);
     }
 
+    private void montarNosVirtuais() {
+        Map<String, List<Movie>> todosDiretores = new HashMap<>();
+        Map<String, List<Movie>> todosAtores = new HashMap<>();
+        Map<String, List<Movie>> todosGeneros = new HashMap<>();
+
+        for (Movie movie : movies) {
+            adicionar(todosDiretores, movie.getDirector(), movie);
+
+            for (CastMember membro : movie.getCast()) {
+                adicionar(todosAtores, membro.getActorName(), movie);
+            }
+
+            for (String genero : movie.getGenres()) {
+                adicionar(todosGeneros, genero, movie);
+            }
+        }
+
+        diretoresComMaisDeUmFilme = filtrarComPeloMenosDoisFilmes(todosDiretores);
+        atoresComMaisDeUmFilme = filtrarComPeloMenosDoisFilmes(todosAtores);
+        generosComMaisDeUmFilme = filtrarComPeloMenosDoisFilmes(todosGeneros);
+    }
+
+    private Map<String, List<Movie>> filtrarComPeloMenosDoisFilmes(Map<String, List<Movie>> mapaOriginal) {
+        Map<String, List<Movie>> filtrado = new HashMap<>();
+        for (Map.Entry<String, List<Movie>> entry : mapaOriginal.entrySet()) {
+            if (entry.getValue().size() >= 2) {
+                filtrado.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtrado;
+    }
+
+    private void adicionar(Map<String, List<Movie>> mapa, String chave, Movie movie) {
+        List<Movie> lista = mapa.get(chave);
+        if (lista == null) {
+            lista = new ArrayList<>();
+            mapa.put(chave, lista);
+        }
+        lista.add(movie);
+    }
+
     private void calcularPosicoes() {
         int centroX = LARGURA / 2;
         int centroY = ALTURA / 2;
 
-        for (int i = 0; i < movies.size(); i++) {
-            double angulo = (2 * Math.PI * i) / movies.size();
+        distribuirEmCirculos(idsDosFilmes(), centroX, centroY, RAIO_DOS_FILMES);
+        distribuirEmCirculos(new ArrayList<>(diretoresComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_DIRETORES);
+        distribuirEmCirculos(new ArrayList<>(atoresComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_ATORES);
+        distribuirEmCirculos(new ArrayList<>(generosComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_GENEROS);
+    }
 
-            int x = centroX + (int) (RAIO_DO_CIRCULO * Math.cos(angulo));
-            int y = centroY + (int) (RAIO_DO_CIRCULO * Math.sin(angulo));
+    private void distribuirEmCirculos(List<String> ids, int centroX, int centroY, int raio) {
+        for (int i = 0; i < ids.size(); i++) {
+            double angulo = (2 * Math.PI * i) / ids.size();
 
-            posicoes.put(movies.get(i).getId(), new Point(x, y));
+            int x = centroX + (int) (raio * Math.cos(angulo));
+            int y = centroY + (int) (raio * Math.sin(angulo));
+
+            posicoes.put(ids.get(i), new Point(x, y));
         }
+    }
+
+    private List<String> idsDosFilmes() {
+        List<String> ids = new ArrayList<>();
+        for (Movie movie : movies) {
+            ids.add(movie.getId());
+        }
+
+        return ids;
     }
 
     @Override
@@ -52,99 +118,123 @@ public class GraphPanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        desenharArestas(g2);
-        desenharNos(g2);
+        desenharLigacoesComDiretores(g2);
+        desenharLigacoesComAtores(g2);
+        desenharLigacoesComGeneros(g2);
+
+        desenharNosVirtuais(g2, diretoresComMaisDeUmFilme, new Color(200, 30, 30));
+        desenharNosVirtuais(g2, atoresComMaisDeUmFilme, new Color(30, 150, 60));
+        desenharNosVirtuais(g2, generosComMaisDeUmFilme, new Color(40, 100, 220));
+
+        desenharFilmes(g2);
         desenharLegenda(g2);
     }
 
-    private void desenharArestas(Graphics2D g2) {
-        Set<String> arestasJaDesenhadas = new HashSet<>();
+    private void desenharLigacoesComDiretores(Graphics2D g2) {
+        g2.setColor(new Color(200, 30, 30));
+        g2.setStroke(new BasicStroke(2));
 
-        for(Movie movie : movies) {
-            List<Edge> conexoes = graph.getConnections(movie);
-
-            for(Edge edge : conexoes) {
-                Movie target = edge.getTarget();
-                String chave = chaveDaAresta(movie.getId(), target.getId(), edge.getType());
-
-                if(arestasJaDesenhadas.contains(chave)) continue;
-
-                arestasJaDesenhadas.add(chave);
-
-                Point p1 = posicoes.get(movie.getId());
-                Point p2 = posicoes.get(target.getId());
-
-                g2.setColor(corDoTipo((edge.getType())));
-                float espessura = (float) (edge.getWeight() *  3.0);
-                g2.setStroke(new BasicStroke(espessura));
-                g2.drawLine(p1.x, p1.y, p2.x, p2.y);
+        for(Map.Entry<String, List<Movie>> entry : diretoresComMaisDeUmFilme.entrySet()) {
+            Point posicaoDoDiretor = posicoes.get(entry.getKey());
+            for(Movie movie : entry.getValue()) {
+                Point posicaoDoFilme = posicoes.get(movie.getId());
+                g2.drawLine(posicaoDoFilme.x, posicaoDoFilme.y, posicaoDoDiretor.x, posicaoDoDiretor.y);
             }
         }
+    }
+
+    private void desenharLigacoesComAtores(Graphics2D g2) {
+        g2.setColor(new Color(30, 150, 60));
+
+        for(Map.Entry<String, List<Movie>> entry : atoresComMaisDeUmFilme.entrySet()) {
+            Point posicaoDoAtor = posicoes.get(entry.getKey());
+            for(Movie movie : entry.getValue()) {
+                Point posicaoDoFilme = posicoes.get(movie.getId());
+
+                CastMember membro = movie.findCastMember(entry.getKey());
+                float espessura = (float) (membro.getRole().getRelevance() * 3.0);
+                g2.setStroke(new BasicStroke(espessura));
+
+                g2.drawLine(posicaoDoFilme.x, posicaoDoFilme.y, posicaoDoAtor.x, posicaoDoAtor.y);
+            }
+        }
+    }
+
+    private void desenharLigacoesComGeneros(Graphics2D g2) {
+        g2.setColor(new Color(40, 100, 220));
+        g2.setStroke(new BasicStroke(1));
+
+        for(Map.Entry<String, List<Movie>> entry : generosComMaisDeUmFilme.entrySet()) {
+            Point posicaoDoGenero = posicoes.get(entry.getKey());
+            for(Movie movie : entry.getValue()) {
+                Point posicaoDoFilme = posicoes.get(movie.getId());
+                g2.drawLine(posicaoDoFilme.x, posicaoDoFilme.y, posicaoDoGenero.x, posicaoDoGenero.y);
+            }
+        }
+    }
+
+    private void desenharNosVirtuais(Graphics2D g2, Map<String, List<Movie>> nos, Color cor) {
+        for(String nome : nos.keySet()) {
+            Point p = posicoes.get(nome);
+
+            g2.setColor(cor);
+            g2.fillRect(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
+
+            g2.setColor(Color.BLACK);
+            g2.drawRect(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
+        }
+    }
+
+    private void desenharFilmes(Graphics2D g2) {
+        for(Movie movie : movies) {
+            Point p = posicoes.get(movie.getId());
+
+            g2.setColor(new Color(230, 150, 20));
+            g2.fillOval(p.x - TAMANHO_NO_FILME, p.y - TAMANHO_NO_FILME, TAMANHO_NO_FILME * 2, TAMANHO_NO_FILME * 2);
+
+            g2.setColor(Color.BLACK);
+            g2.fillOval(p.x - TAMANHO_NO_FILME, p.y - TAMANHO_NO_FILME, TAMANHO_NO_FILME * 2, TAMANHO_NO_FILME * 2);
+
+            desenharTextoCentralizado(g2, movie.getTitle(), p.x, p.y + TAMANHO_NO_FILME + 15);
+        }
+    }
+
+    private void desenharTextoCentralizado(Graphics2D g2, String texto, int x, int y) {
+        g2.setColor(Color.BLACK);
+        FontMetrics metrics = g2.getFontMetrics();
+        int largura = metrics.stringWidth(texto);
+        g2.drawString(texto, x - (largura / 2), y);
     }
 
     private void desenharLegenda(Graphics2D g2) {
         int x = 20;
         int y = 20;
-        int alturaLinha = 20;
 
         g2.setColor(Color.BLACK);
         g2.drawString("Legenda:", x, y);
 
-        for(ConnectionType tipo : ConnectionType.values()) {
-            y = y + alturaLinha;
+        y = y + 20;
+        g2.setColor(new Color(230, 150, 20));
+        g2.fillOval(x, y - 10, 12, 12);
+        g2.setColor(Color.BLACK);
+        g2.drawString("filme", x + 20, y);
 
-            g2.setColor(corDoTipo(tipo));
-            g2.setStroke(new BasicStroke(3));
-            g2.drawLine(x, y - 4, x + 30, y -4);
+        y = y + 20;
+        g2.setColor(new Color(200, 30, 30));
+        g2.fillOval(x, y - 10, 12, 12);
+        g2.setColor(Color.BLACK);
+        g2.drawString("diretor", x + 20, y);
 
-            g2.setColor(Color.BLACK);
-            g2.drawString(tipo.getDescription(), x + 40, y);
-        }
-    }
+        y = y + 20;
+        g2.setColor(new Color(30, 150, 60));
+        g2.fillOval(x, y - 10, 12, 12);
+        g2.setColor(Color.BLACK);
+        g2.drawString("ator (linha mais gross = papel mais importante)", x + 20, y);
 
-    private String chaveDaAresta(String id1, String id2, ConnectionType tipo) {
-        if(id1.compareTo(id2) < 0) {
-            return id1 + "|" + id2 + "|" + tipo;
-        } else {
-            return id2 + "|" + id1 + "|" + tipo;
-        }
-    }
-
-    private void desenharNos(Graphics2D g2) {
-        g2.setStroke(new BasicStroke(1));
-
-        for(Movie movie : movies) {
-            Point p = posicoes.get(movie.getId());
-
-            g2.setColor(new Color(30, 90, 120));
-            g2.fillOval(p.x - RAIO_DO_NO, p.y - RAIO_DO_NO, RAIO_DO_NO * 2, RAIO_DO_NO * 2);
-
-            g2.setColor(Color.BLACK);
-            g2.drawOval(p.x - RAIO_DO_NO, p.y - RAIO_DO_NO, RAIO_DO_NO * 2, RAIO_DO_NO * 2);
-
-            String texto = movie.getTitle();
-            FontMetrics metrics = g2.getFontMetrics();
-            int larguraTexto = metrics.stringWidth(texto);
-
-            g2.drawString(texto, p.x - (larguraTexto / 2), p.y + RAIO_DO_NO + 15);
-        }
-    }
-
-    private Color corDoTipo(ConnectionType tipo) {
-        if(tipo == ConnectionType.DIRECTOR) {
-            return new Color(200, 30, 30);
-        }
-        if(tipo == ConnectionType.ACTOR) {
-            return new Color(30, 150, 60);
-        }
-        if(tipo == ConnectionType.GENRE) {
-            return new Color(40, 100, 220);
-        }
-        if(tipo == ConnectionType.FRANCHISE) {
-            return new Color(160, 40, 180);
-        }
-
-        // era
-        return new Color(150, 150, 150);
+        y = y + 20;
+        g2.setColor(new Color(40, 100, 220));
+        g2.fillOval(x, y - 10, 12, 12);
+        g2.setColor(Color.BLACK);
+        g2.drawString("gênero", x + 20, y);
     }
 }

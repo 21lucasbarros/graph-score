@@ -14,11 +14,6 @@ public class GraphPanel extends JPanel {
     private static final int LARGURA = 1000;
     private static final int ALTURA = 800;
 
-    private static final int RAIO_DOS_FILMES = 330;
-    private static final int RAIO_DOS_DIRETORES = 90;
-    private static final int RAIO_DOS_ATORES = 160;
-    private static final int RAIO_DOS_GENEROS = 230;
-
     private static final int TAMANHO_NO_FILME = 10;
     private static final int TAMANHO_NO_VIRTUAL = 8;
 
@@ -36,7 +31,7 @@ public class GraphPanel extends JPanel {
         montarNosVirtuais();
         calcularPosicoes();
 
-        setPreferredSize(new Dimension(ALTURA, LARGURA));
+        setPreferredSize(new Dimension(LARGURA, ALTURA));
         setBackground(Color.WHITE);
     }
 
@@ -81,34 +76,98 @@ public class GraphPanel extends JPanel {
         lista.add(movie);
     }
 
-    private void calcularPosicoes() {
-        int centroX = LARGURA / 2;
-        int centroY = ALTURA / 2;
-
-        distribuirEmCirculos(idsDosFilmes(), centroX, centroY, RAIO_DOS_FILMES);
-        distribuirEmCirculos(new ArrayList<>(diretoresComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_DIRETORES);
-        distribuirEmCirculos(new ArrayList<>(atoresComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_ATORES);
-        distribuirEmCirculos(new ArrayList<>(generosComMaisDeUmFilme.keySet()), centroX, centroY, RAIO_DOS_GENEROS);
-    }
-
-    private void distribuirEmCirculos(List<String> ids, int centroX, int centroY, int raio) {
-        for (int i = 0; i < ids.size(); i++) {
-            double angulo = (2 * Math.PI * i) / ids.size();
-
-            int x = centroX + (int) (raio * Math.cos(angulo));
-            int y = centroY + (int) (raio * Math.sin(angulo));
-
-            posicoes.put(ids.get(i), new Point(x, y));
-        }
-    }
-
     private List<String> idsDosFilmes() {
         List<String> ids = new ArrayList<>();
         for (Movie movie : movies) {
             ids.add(movie.getId());
         }
-
         return ids;
+    }
+
+    private void calcularPosicoes() {
+        List<String> todosOsNos = new ArrayList<>();
+        todosOsNos.addAll(idsDosFilmes());
+        todosOsNos.addAll(diretoresComMaisDeUmFilme.keySet());
+        todosOsNos.addAll(atoresComMaisDeUmFilme.keySet());
+        todosOsNos.addAll(generosComMaisDeUmFilme.keySet());
+
+        List<String[]> arestas = new ArrayList<>();
+        for (Map.Entry<String, List<Movie>> entry : diretoresComMaisDeUmFilme.entrySet()) {
+            for (Movie m : entry.getValue()) arestas.add(new String[]{entry.getKey(), m.getId()});
+        }
+        for (Map.Entry<String, List<Movie>> entry : atoresComMaisDeUmFilme.entrySet()) {
+            for (Movie m : entry.getValue()) arestas.add(new String[]{entry.getKey(), m.getId()});
+        }
+        for (Map.Entry<String, List<Movie>> entry : generosComMaisDeUmFilme.entrySet()) {
+            for (Movie m : entry.getValue()) arestas.add(new String[]{entry.getKey(), m.getId()});
+        }
+
+        Map<String, double[]> pos = new HashMap<>();
+        for (String no : todosOsNos) {
+            pos.put(no, new double[]{ LARGURA / 2.0 + (Math.random() * 50 - 25), ALTURA / 2.0 + (Math.random() * 50 - 25) });
+        }
+
+        for (int iteracao = 0; iteracao < 250; iteracao++) {
+            Map<String, double[]> forcas = new HashMap<>();
+            for (String no : todosOsNos) forcas.put(no, new double[]{0, 0});
+
+            for (int i = 0; i < todosOsNos.size(); i++) {
+                for (int j = i + 1; j < todosOsNos.size(); j++) {
+                    String noA = todosOsNos.get(i);
+                    String noB = todosOsNos.get(j);
+                    double[] pA = pos.get(noA);
+                    double[] pB = pos.get(noB);
+
+                    double dx = pA[0] - pB[0];
+                    double dy = pA[1] - pB[1];
+                    double dist = Math.max(1.0, Math.sqrt(dx * dx + dy * dy));
+
+                    double repulsao = 15000.0 / (dist * dist);
+                    double fx = (dx / dist) * repulsao;
+                    double fy = (dy / dist) * repulsao;
+
+                    forcas.get(noA)[0] += fx;
+                    forcas.get(noA)[1] += fy;
+                    forcas.get(noB)[0] -= fx;
+                    forcas.get(noB)[1] -= fy;
+                }
+            }
+
+            for (String[] aresta : arestas) {
+                String noA = aresta[0];
+                String noB = aresta[1];
+                double[] pA = pos.get(noA);
+                double[] pB = pos.get(noB);
+
+                double dx = pB[0] - pA[0];
+                double dy = pB[1] - pA[1];
+                double dist = Math.max(1.0, Math.sqrt(dx * dx + dy * dy));
+
+                double atracao = (dist - 150) * 0.05;
+                double fx = (dx / dist) * atracao;
+                double fy = (dy / dist) * atracao;
+
+                forcas.get(noA)[0] += fx;
+                forcas.get(noA)[1] += fy;
+                forcas.get(noB)[0] -= fx;
+                forcas.get(noB)[1] -= fy;
+            }
+
+            for (String no : todosOsNos) {
+                double[] p = pos.get(no);
+                double[] f = forcas.get(no);
+
+                f[0] += (LARGURA / 2.0 - p[0]) * 0.01;
+                f[1] += (ALTURA / 2.0 - p[1]) * 0.01;
+
+                p[0] += f[0];
+                p[1] += f[1];
+            }
+        }
+
+        for (String no : todosOsNos) {
+            posicoes.put(no, new Point((int) pos.get(no)[0], (int) pos.get(no)[1]));
+        }
     }
 
     @Override
@@ -178,10 +237,12 @@ public class GraphPanel extends JPanel {
             Point p = posicoes.get(nome);
 
             g2.setColor(cor);
-            g2.fillRect(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
+            g2.fillOval(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
 
             g2.setColor(Color.BLACK);
-            g2.drawRect(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
+            g2.drawOval(p.x - TAMANHO_NO_VIRTUAL, p.y - TAMANHO_NO_VIRTUAL, TAMANHO_NO_VIRTUAL * 2, TAMANHO_NO_VIRTUAL * 2);
+
+            desenharTextoCentralizado(g2, nome, p.x, p.y + TAMANHO_NO_VIRTUAL + 15);
         }
     }
 
@@ -193,7 +254,7 @@ public class GraphPanel extends JPanel {
             g2.fillOval(p.x - TAMANHO_NO_FILME, p.y - TAMANHO_NO_FILME, TAMANHO_NO_FILME * 2, TAMANHO_NO_FILME * 2);
 
             g2.setColor(Color.BLACK);
-            g2.fillOval(p.x - TAMANHO_NO_FILME, p.y - TAMANHO_NO_FILME, TAMANHO_NO_FILME * 2, TAMANHO_NO_FILME * 2);
+            g2.drawOval(p.x - TAMANHO_NO_FILME, p.y - TAMANHO_NO_FILME, TAMANHO_NO_FILME * 2, TAMANHO_NO_FILME * 2);
 
             desenharTextoCentralizado(g2, movie.getTitle(), p.x, p.y + TAMANHO_NO_FILME + 15);
         }

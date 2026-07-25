@@ -90,34 +90,73 @@ public class Main {
                         new CastMember("Harrison Ford", RoleType.SUPPORTING)
                 ), null, 8.7, 2017));
 
-        filmes.add(new Movie("m8", "Iron Man", "Jon Favreau",
-                generos("Ação", "Ficção Científica"),
+        // --- Início dos filmes adicionados ---
+        filmes.add(new Movie("m8", "Alien", "Ridley Scott",
+                generos("Ficção Científica", "Terror"),
                 elenco(
-                        new CastMember("Robert Downey Jr.", RoleType.PROTAGONIST)
-                ), "Marvel Cinematic Universe", 7.9, 2008));
+                        new CastMember("Sigourney Weaver", RoleType.PROTAGONIST),
+                        new CastMember("Tom Skerritt", RoleType.SUPPORTING)
+                ), "Alien", 8.5, 1979));
 
-        filmes.add(new Movie("m9", "The Avengers", "Joss Whedon",
-                generos("Ação", "Ficção Científica"),
+        filmes.add(new Movie("m9", "Tenet", "Christopher Nolan",
+                generos("Ficção Científica", "Ação"),
                 elenco(
-                        new CastMember("Robert Downey Jr.", RoleType.PROTAGONIST),
-                        new CastMember("Chris Evans", RoleType.PROTAGONIST)
-                ), "Marvel Cinematic Universe", 8.0, 2012));
+                        new CastMember("John David Washington", RoleType.PROTAGONIST),
+                        new CastMember("Robert Pattinson", RoleType.SUPPORTING)
+                ), null, 7.3, 2020));
 
-        filmes.add(new Movie("m10", "Titanic", "James Cameron",
+        filmes.add(new Movie("m10", "Whiplash", "Damien Chazelle",
+                generos("Drama", "Música"),
+                elenco(
+                        new CastMember("Miles Teller", RoleType.PROTAGONIST),
+                        new CastMember("J.K. Simmons", RoleType.SUPPORTING)
+                ), null, 8.5, 2014));
+
+        filmes.add(new Movie("m11", "A Rede Social", "David Fincher",
+                generos("Drama", "Biografia"),
+                elenco(
+                        new CastMember("Jesse Eisenberg", RoleType.PROTAGONIST),
+                        new CastMember("Andrew Garfield", RoleType.SUPPORTING)
+                ), null, 7.8, 2010));
+
+        filmes.add(new Movie("m12", "La La Land", "Damien Chazelle",
+                generos("Drama", "Romance"),
+                elenco(
+                        new CastMember("Ryan Gosling", RoleType.PROTAGONIST),
+                        new CastMember("Emma Stone", RoleType.PROTAGONIST)
+                ), null, 8.0, 2016));
+
+        filmes.add(new Movie("m13", "Se7en", "David Fincher",
+                generos("Crime", "Suspense"),
+                elenco(
+                        new CastMember("Brad Pitt", RoleType.PROTAGONIST),
+                        new CastMember("Morgan Freeman", RoleType.PROTAGONIST),
+                        new CastMember("Kevin Spacey", RoleType.SUPPORTING)
+                ), null, 8.6, 1995));
+
+        filmes.add(new Movie("m14", "Zodiac", "David Fincher",
+                generos("Crime", "Suspense"),
+                elenco(
+                        new CastMember("Jake Gyllenhaal", RoleType.PROTAGONIST),
+                        new CastMember("Mark Ruffalo", RoleType.SUPPORTING),
+                        new CastMember("Robert Downey Jr.", RoleType.SUPPORTING)
+                ), null, 7.7, 2007));
+
+        filmes.add(new Movie("m15", "Titanic", "James Cameron",
                 generos("Drama", "Romance"),
                 elenco(
                         new CastMember("Leonardo DiCaprio", RoleType.PROTAGONIST),
                         new CastMember("Kate Winslet", RoleType.PROTAGONIST)
                 ), null, 7.9, 1997));
 
-        filmes.add(new Movie("m11", "Avatar", "James Cameron",
+        filmes.add(new Movie("m16", "Avatar", "James Cameron",
                 generos("Ficção Científica", "Aventura"),
                 elenco(
                         new CastMember("Sam Worthington", RoleType.PROTAGONIST),
                         new CastMember("Zoe Saldana", RoleType.PROTAGONIST)
                 ), "Avatar", 7.9, 2009));
 
-        filmes.add(new Movie("m12", "Parasite", "Bong Joon-ho",
+        filmes.add(new Movie("m17", "Parasite", "Bong Joon-ho",
                 generos("Drama", "Suspense"),
                 elenco(
                         new CastMember("Song Kang-ho", RoleType.PROTAGONIST)

@@ -1,13 +1,19 @@
 package com.lucasbarros;
 
+import com.lucasbarros.graph.ConnectionType;
 import com.lucasbarros.graph.MovieGraph;
 import com.lucasbarros.model.CastMember;
 import com.lucasbarros.model.Movie;
 import com.lucasbarros.model.RoleType;
+import com.lucasbarros.model.UserProfile;
+import com.lucasbarros.recommendation.RecommendationEngine;
+import com.lucasbarros.recommendation.RecommendationResult;
 import com.lucasbarros.visual.GraphPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,8 +21,16 @@ import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
+        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
         List<Movie> filmes = montadorDeFilmesDeTeste();
         MovieGraph graph = new MovieGraph(filmes);
+
+        UserProfile user = buildUserProfile(filmes);
+
+        RecommendationEngine engine = new RecommendationEngine(graph);
+        List<RecommendationResult> recommendations = engine.recommend(user, 5);
+
+        printReport(user, recommendations);
 
         SwingUtilities.invokeLater(() -> abrirJanela(graph));
     }
@@ -90,7 +104,6 @@ public class Main {
                         new CastMember("Harrison Ford", RoleType.SUPPORTING)
                 ), null, 8.7, 2017));
 
-        // --- Início dos filmes adicionados ---
         filmes.add(new Movie("m8", "Alien", "Ridley Scott",
                 generos("Ficção Científica", "Terror"),
                 elenco(
@@ -179,5 +192,62 @@ public class Main {
             lista.add(membro);
         }
         return lista;
+    }
+
+    private static UserProfile buildUserProfile(List<Movie> movies) {
+        Movie inception = findById(movies, "m1");
+        Movie darkKnight = findById(movies, "m2");
+        Movie dune = findById(movies, "m5");
+
+        UserProfile user = new UserProfile("Erik");
+        user.addLikedMovie(inception);
+        user.addLikedMovie(darkKnight);
+        user.addLikedMovie(dune);
+
+        user.addFavoriteDirector("Christopher Nolan");
+
+        user.setConnectionTypeMultiplier(ConnectionType.GENRE, 1.2);
+
+        return user;
+    }
+
+    private static Movie findById(List<Movie> movies, String id) {
+        for(Movie movie : movies) {
+            if(movie.getId().equals(id)) return movie;
+        }
+        throw new IllegalArgumentException("Filme não encontrado: " + id);
+    }
+
+    private static void printReport(UserProfile user, List<RecommendationResult> recommendations) {
+        System.out.println("===================================================");
+        System.out.println(" Sistema de Recomendação de Filmes baseado em Grafo");
+        System.out.println("===================================================");
+        System.out.println();
+        System.out.println("Usuário: " + user.getName());
+        System.out.println("Filmes curtidos:");
+
+        for(Movie m : user.getLikedMovies()) {
+            System.out.println("   - " + m);
+        }
+        System.out.println();
+        System.out.println("===================================================");
+        System.out.println("Recomendações:");
+        System.out.println("===================================================");
+
+        if(recommendations.isEmpty()) {
+            System.out.println("Nenhuma recomendação encontrada com os dados atuais.");
+            return;
+        }
+
+        int rank = 1;
+        for(RecommendationResult result : recommendations) {
+            System.out.println(rank + ". " + result.getMovie() + " - compatibilidade: " +  result.getScore());
+            System.out.println("    Motivos:");
+            for(String reason : result.getReasons()) {
+                System.out.println("    - " + reason);
+            }
+            System.out.println();
+            rank++;
+        }
     }
 }

@@ -36,7 +36,7 @@ public class Main {
     }
 
     private static void abrirJanela(MovieGraph graph) {
-        JFrame frame = new JFrame("Erik, te amoooooo <3");
+        JFrame frame = new JFrame("Graph-Score");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         GraphPanel painel = new GraphPanel(graph);
